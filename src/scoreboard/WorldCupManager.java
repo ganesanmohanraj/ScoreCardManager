@@ -23,8 +23,14 @@ public class WorldCupManager {
 
 	public WorldCupManager() {
 		state = State.END;
-	}
+	}	
 	
+	
+	public State getState() {
+		return state;
+	}
+
+
 	/**
 	 * Start a new game
 	 */
@@ -42,6 +48,21 @@ public class WorldCupManager {
 	 */
 	public void finish() {
 		reset();
+	}
+	
+	/**
+	 * Displays the current Score Board
+	 */
+	public String checkPlayState() {
+		
+		if (state == State.END) {
+			return "No game currently in progress";
+		}
+		
+		state = State.PLAYING;
+		return "Game Started";
+		
+		
 	}
 
 	/**
