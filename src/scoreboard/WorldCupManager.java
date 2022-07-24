@@ -1,171 +1,183 @@
 package scoreboard;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
 /**
-*
-* @author Ganesan Mohanraj
-*/
+ *
+ * @author Ganesan Mohanraj
+ */
 public class WorldCupManager {
-
-	private final int numberOfTeams;
-
-	private final ArrayList<FootballTeam> teamList;
-	private final Scanner scanner;
-	private final ArrayList<FootballMatch> matches;
-
-	public WorldCupManager(int numberOfTeams) {
-
-		this.numberOfTeams = numberOfTeams;
-		teamList = new ArrayList<>();
-		matches = new ArrayList<>();
-		scanner = new Scanner(System.in);
-		displayMenu();
-
+	
+	public static enum State {
+		START, PLAYING ,END
 	}
 
-	private void displayMenu() {
+	private ArrayList<FootballTeam> teamList;
+	private ArrayList<FootballMatch> matches;	
+	
+	private State state;
 
-		while (true) {
-
-			System.out.println("Football World Cup menu: ");
-			System.out.println("1. Add new team");
-			System.out.println("2. Delete existing team");
-			System.out.println("3. Add a Played Match details");
-			System.out.println("4. Display Score Card");
-			String line = scanner.nextLine();
-			int command = 0;
-			try {
-				command = Integer.parseInt(line);
-			} catch (Exception e) {
-
-			}
-
-			switch (command) {
-			case 1:
-				addTeam();
-				break;
-			case 2:
-				deleteTeam();
-				break;
-			case 3:
-				addPlayedMatch();
-				break;
-			case 4:
-				displayScoreBoard();
-				break;
-			default:
-	            System.out.println("Wrong Command");
-			}
-
-		}
+	public WorldCupManager() {
+		state = State.END;
+	}
+	
+	/**
+	 * Start a new game
+	 */
+	public void start() {
+		reset();
+			
+		state = State.START;
+		
+		readTeams();
+		readMatchData();
+	}
+	
+	/**
+	 * Finish the current game
+	 */
+	public void finish() {
+		reset();
 	}
 
-	private void addTeam() {
-
-		if (teamList.size() == numberOfTeams) {
-			System.out.println("Can't add more teams to world cup");
-			return;
-		}
-
-		FootballTeam team = new FootballTeam();
-		System.out.println("Enter Team Name: ");
-		String line = scanner.nextLine();
-		team.setName(line);
-
-		if (teamList.contains(team)) {
-			System.out.println("This Team is already in the teams list");
-			return;
+	/**
+	 * Displays the current Score Board
+	 */
+	public void displayScoreBoard() {
+		
+		if (state == State.END) {
+			System.out.println("No game currently in progress");
 		}
 		
-		teamList.add(team);
-
+		state = State.PLAYING;
+		for (FootballMatch match : matches) {
+			System.out.println(match.getHomeTeam().getName() + " " + match.getHomeTeamScore() + " - "
+					+ match.getAwayTeam().getName() + " " + match.getAwayTeamScore());
+		}
 	}
-
-	private void deleteTeam() {
-
-		System.out.println("Enter Team Name: ");
-		String line = scanner.nextLine();
-		for (FootballTeam team : teamList) {
-			if (team.getName().equals(line)) {
-				teamList.remove(team);
-				System.out.println("Team " + team.getName() + " removed");
-				return;
+	
+	/**
+	 * @param updateMatch
+	 */
+	public void updateMatch(FootballMatch updateMatch) {
+		
+		if (state == State.END) {
+			System.out.println("No game currently in progress");
+		}
+		
+		state = State.PLAYING;
+		for (FootballMatch match : matches) {
+			String home = match.getHomeTeam().getName();
+			String updateHome= updateMatch.getHomeTeam().getName();
+			String away= match.getAwayTeam().getName();
+			String updateAway= updateMatch.getAwayTeam().getName();
+			if((updateHome.equals(home)) && (updateAway.equals(away))) {
+				matches.set( matches.indexOf(match) , updateMatch);
 			}
 		}
-		System.out.println("No such Team in World Cup");
+		
 	}
 	
-	private void addPlayedMatch() {
-
-		System.out.println("Enter Home Team: ");
-		String line = scanner.nextLine();
-
-		FootballTeam home = null;
-
-		for (FootballTeam team : teamList) {
-			if (team.getName().equals(line))
-				home = team;
-		}
-
-		if (home == null) {
-			System.out.println("No such team in World Cup");
-			return;
-		}
-
-		System.out.println("Enter Away Team: ");
-		line = scanner.nextLine();
-
-		FootballTeam away = null;
-
-		for (FootballTeam team : teamList) {
-			if (team.getName().equals(line))
-				away = team;
-		}
-
-		if (away == null) {
-			System.out.println("No such team in World Cup");
-			return;
-		}
-
-		System.out.println("Enter home team goals: ");
-		line = scanner.nextLine();
-		int homeGoals = -1;
+	private void readTeams() {
 		try {
-			homeGoals = Integer.parseInt(line);
-		} catch (Exception e) {
-		}
-		if (homeGoals == -1) {
-			System.out.println("You have to enter number of goals");
-			return;
-		}
 
-		System.out.println("Enter away team goals: ");
-		line = scanner.nextLine();
-		int awayGoals = -1;
+			File file = new File("resources/teams.txt").getCanonicalFile();
+			teamList = new ArrayList<>();
+
+			Scanner scan = new Scanner(file);
+
+			String line = "";
+
+			while (scan.hasNextLine()) {
+
+				line = scan.nextLine();
+				FootballTeam team = new FootballTeam();
+				team.setName(line);
+
+				if (!teamList.contains(team)) {
+					teamList.add(team);
+				}
+
+			}
+			scan.close();
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void readMatchData() {
 		try {
-			awayGoals = Integer.parseInt(line);
-		} catch (Exception e) {
-		}
-		if (awayGoals == -1) {
-			System.out.println("You have to enter number of goals");
-			return;
-		}
 
-		FootballMatch match = new FootballMatch();
-		match.setHomeTeam(home);
-		match.setAwayTeam(away);
-		match.setHomeTeamScore(homeGoals);
-		match.setAwayTeamScore(awayGoals);
-		matches.add(match);
+			File file = new File("resources/matches.txt").getCanonicalFile();
 
+			Scanner scan = new Scanner(file);
+			matches = new ArrayList<>();
+
+			String fileString = "";
+
+			while (scan.hasNextLine()) {
+
+				fileString = scan.nextLine();
+				String[] readInfo = fileString.split("\\\\t|:");
+
+				if (readInfo.length == 2) {
+
+					FootballTeam homeTeam = new FootballTeam();
+					FootballTeam awayTeam = new FootballTeam();
+					int homeGoals = 0;
+					int awayGoals = 0;
+
+					String[] teamInfo = readInfo[0].split("\\\\t|-");
+
+					if (teamInfo.length == 2) {
+						homeTeam.setName(teamInfo[0].trim());
+						awayTeam.setName(teamInfo[1].trim());
+					}
+
+					String[] scoreInfo = readInfo[1].split("\\\\t|-");
+
+					if (teamInfo.length == 2) {
+
+						try {
+							homeGoals = Integer.parseInt(scoreInfo[0].trim());
+							awayGoals = Integer.parseInt(scoreInfo[1].trim());
+						} catch (Exception e) {
+						}
+
+					}
+
+					FootballMatch match = new FootballMatch();
+					match.setHomeTeam(homeTeam);
+					match.setAwayTeam(awayTeam);
+					match.setHomeTeamScore(homeGoals);
+					match.setAwayTeamScore(awayGoals);
+					matches.add(match);
+
+				}
+			}
+			scan.close();
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
-	private void displayScoreBoard() {
-		  for(FootballMatch match : matches) {
-	            System.out.println(match.getHomeTeam().getName()+" "+ match.getHomeTeamScore()+" - "+ match.getAwayTeam().getName()+" "+ match.getAwayTeamScore());
-	    }
+	/**
+	 * Reset the game to a new one.
+	 */
+	private void reset() {
+		teamList = null;
+		matches = null;
+		state = State.END;
 	}
 
 }
